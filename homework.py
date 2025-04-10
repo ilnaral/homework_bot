@@ -37,6 +37,7 @@ HOMEWORK_VERDICTS = {
 
 class ApiCodeError(Exception):  # Можно сделать отдельный файл с исключениями?
     """Исключение для ошибок с API."""
+
     def __init__(self, message="Ошибка доступа к API"):
         super().__init__(message)
 
@@ -50,7 +51,8 @@ def check_tokens():
     for token, value in tokens.items():
         if value is None:
             result_message.append(
-                f"Недостаточно одной из главных переменных из окружения '{token}'"
+                f"Недостаточно одной из главных
+                переменных из окружения '{token}'"
             )
     return result_message
 
@@ -105,8 +107,8 @@ def check_response(response):
 
 def parse_status(homework):
     """
-    Извлекает из информации о конкретной
-    домашней работе статус этой работы.
+    Извлекает из информации о конкретной домашней работе.
+    Cтатус этой работы.
     """
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')

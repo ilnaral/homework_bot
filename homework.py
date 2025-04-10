@@ -51,8 +51,8 @@ def check_tokens():
     for token, value in tokens.items():
         if value is None:
             result_message.append(
-                f"Недостаточно одной из главных
-                переменных из окружения '{token}'"
+                f"Недостаточно одной из главных"
+                f"переменных из окружения '{token}'"
             )
     return result_message
 

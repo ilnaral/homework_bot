@@ -7,7 +7,7 @@ from http import HTTPStatus
 
 import requests
 from dotenv import load_dotenv
-from telebot import TeleBot
+from telebot import TeleBot, apihelper
 
 load_dotenv()
 
@@ -35,7 +35,7 @@ HOMEWORK_VERDICTS = {
 }
 
 
-class ApiCodeError(Exception):  # Можно сделать отдельный файл с исключениями?
+class ApiCodeError(Exception):
     """Исключение для ошибок с API."""
 
     def __init__(self, message="Ошибка доступа к API"):
@@ -64,8 +64,11 @@ def send_message(bot, message):
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
         logging.debug('Отправка сообщения завершена.')
-    except Exception:
+        return True
+    except (apihelper.ApiTelegramException,
+            requests.exceptions.RequestException) as error:
         logging.error('Сообщение не доставлено, произошел сбой.')
+        return False
 
 
 def get_api_answer(timestamp):
@@ -78,18 +81,17 @@ def get_api_answer(timestamp):
             params=params,
             timeout=TIMEOUT
         )
-    except requests.exceptions.RequestException:
-        raise ApiCodeError('API недоступно')
-    if response.status_code == HTTPStatus.OK:
-        logging.info('API доступно')
-        try:
+        if response.status_code == HTTPStatus.OK:
+            logging.info('API доступно')
             response = response.json()
             logging.info('Данные успешно получены')
             return response
-        except json.decoder.JSONDecodeError:
-            message = 'Ошибка получения данных'
-            raise json.decoder.JSONDecodeError(f'{message}')
-    raise ApiCodeError
+        raise ApiCodeError(f"HTTP Status: {response.status_code}")
+    except requests.exceptions.RequestException:
+        raise ApiCodeError('API недоступно')
+    except json.decoder.JSONDecodeError:
+        message = 'Ошибка получения данных'
+        raise json.decoder.JSONDecodeError(f'{message}')
 
 
 def check_response(response):
@@ -136,8 +138,9 @@ def main():
         sys.exit('Ошибка: Токены не прошли валидацию')
     # Создаем объект класса бота
     bot = TeleBot(token=TELEGRAM_TOKEN)
-    timestamp = 0
+    timestamp = int(time.time())
     last_status = None
+    last_error = None
 
     while True:
         try:
@@ -151,9 +154,13 @@ def main():
                     if last_status != current_status:
                         send_message(bot, current_status)
                         last_status = current_status
-            timestamp = int(time.time())
+            timestamp = api_response.get('current_date', int(time.time()))
         except Exception as error:
-            logging.error(f'Сбой в работе программы: {error}')
+            error_message = f'Сбой в работе программы: {error}'
+            logging.error(error_message)
+            if error_message != last_error:
+                send_message(bot, error_message)
+                last_error = error_message
         finally:
             time.sleep(RETRY_PERIOD)
 

@@ -67,7 +67,7 @@ def send_message(bot, message):
         return True
     except (apihelper.ApiTelegramException,
             requests.exceptions.RequestException) as error:
-        logging.error('Сообщение не доставлено, произошел сбой.')
+        logging.error(f'Сообщение не доставлено, произошел сбой: {error}.')
         return False
 
 

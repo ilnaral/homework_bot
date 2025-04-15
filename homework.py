@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import time
+from contextlib import suppress
 from http import HTTPStatus
 
 import requests
@@ -140,27 +141,27 @@ def main():
     bot = TeleBot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
     last_status = None
-    last_error = None
 
     while True:
         try:
             api_response = get_api_answer(timestamp)
-            if check_response(api_response):
-                if not api_response['homeworks']:
-                    logging.debug('Получен пустой список с домашним заданием')
-                else:
-                    last_homework = api_response['homeworks'][0]
-                    current_status = parse_status(last_homework)
-                    if last_status != current_status:
-                        send_message(bot, current_status)
-                        last_status = current_status
-            timestamp = api_response.get('current_date', int(time.time()))
+            check_response(api_response)
+            if not api_response['homeworks']:
+                logging.debug('Получен пустой список с домашним заданием')
+            else:
+                last_homework = api_response['homeworks'][0]
+                current_status = parse_status(last_homework)
+                if last_status != current_status:
+                    send_message(bot, current_status)
+                    last_status = current_status
+            timestamp = api_response.get('current_date', timestamp)
         except Exception as error:
             error_message = f'Сбой в работе программы: {error}'
             logging.error(error_message)
-            if error_message != last_error:
-                send_message(bot, error_message)
-                last_error = error_message
+            with suppress(Exception):
+                if error_message != last_status:
+                    send_message(bot, error_message)
+                    last_status = error_message
         finally:
             time.sleep(RETRY_PERIOD)
 
